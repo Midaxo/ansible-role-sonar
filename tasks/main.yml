@@ -65,8 +65,7 @@
 - name: Set RUN_AS user to sonar, to avoid ElasticSearch failing with 'cannot run as root'
   lineinfile:
     path: /usr/local/sonar/bin/linux-x86-64/sonar.sh
-    firstmatch: yes
-    regexp: '^#RUN_AS_USER='
+    regexp: 'RUN_AS_USER='
     line: 'RUN_AS_USER=sonar'
 
 - name: Copy SonarQube systemd unit file into place (for systemd systems).
@@ -91,7 +90,7 @@
     recurse: yes
     owner: "{{ sonar_user }}"
     group: "{{ sonar_group }}"
-    mode: "go-w"
+    mode: 0644
 
 - name: Allow Sonar time to build on first start.
   pause: seconds=180
