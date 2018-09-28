@@ -1,4 +1,18 @@
 ---
+- name: "Create SonarQube system group"
+  group:
+    name: "{{ sonar_group }}"
+    state: present
+
+- name: "Create SonarQube system user"
+  user:
+    name: "{{ sonar_user }}"
+    group: "{{ sonar_group }}"
+    createhome: no
+    shell: "/sbin/nologin"
+    comment: "SonarQube System user"
+    state: present
+
 - name: Create a database for Sonar.
   mysql_db:
     name: "{{ sonar_mysql_database }}"
@@ -22,6 +36,8 @@
   unarchive:
     src: "{{ workspace }}/{{ sonar_version_directory }}.zip"
     dest: /usr/local/
+    owner: "{{ sonar_user }}"
+    group: "{{ sonar_group }}"
     copy: no
     creates: /usr/local/sonar/COPYING
 
@@ -46,17 +62,35 @@
     state: link
   when: "ansible_service_mgr != 'systemd'"
 
+- name: Set RUN_AS user to sonar, to avoid ElasticSearch failing with 'cannot run as root'
+  lineinfile:
+    path: /usr/local/sonar/bin/linux-x86-64/sonar.sh
+    regexp: 'RUN_AS_USER='
+    line: 'RUN_AS_USER=sonar'
+
 - name: Copy SonarQube systemd unit file into place (for systemd systems).
   template:
     src: sonar.unit.j2
     dest: /etc/systemd/system/sonar.service
     owner: root
     group: root
-    mode: 0755
+    mode: 0644
   when: "ansible_service_mgr == 'systemd'"
 
 - name: Ensure Sonar is running and set to start on boot.
-  service: name=sonar state=started enabled=yes
+  service: 
+    name: sonar
+    state: started
+    enabled: yes
+
+- name: "Ensure SonarQube files permissions"
+  file:
+    path: /usr/local/sonar
+    state: directory
+    recurse: yes
+    owner: "{{ sonar_user }}"
+    group: "{{ sonar_group }}"
+    mode: 0644
 
 - name: Allow Sonar time to build on first start.
   pause: seconds=180
