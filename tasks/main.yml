@@ -90,7 +90,7 @@
     recurse: yes
     owner: "{{ sonar_user }}"
     group: "{{ sonar_group }}"
-    mode: 0644
+    mode: 0751
 
 - name: Allow Sonar time to build on first start.
   pause: seconds=180
